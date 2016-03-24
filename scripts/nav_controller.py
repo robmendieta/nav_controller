@@ -97,7 +97,7 @@ class NavClass():
         
     def stopRobot(self):
         stop_msg = std_msgs.msg.String
-        stop_pub = rospy.Publisher('cmd_vel_current', String, queue_size=1)
+        stop_pub = rospy.Publisher('~/event_dout', String, queue_size=1)
         rospy.loginfo("Stopping the robot")
         self.speed_msg.linear.x = 0.0
         self.speed_msg.linear.y = 0.0
