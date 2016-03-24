@@ -32,7 +32,7 @@ class NavClass():
         #Publish speed
         self.speed_pub = rospy.Publisher('cmd_vel_current', geometry_msgs.msg.Twist, queue_size=1)
         self.speed_msg = geometry_msgs.msg.Twist()
-	
+        self.robRun = True
          
     def getTF(self):   
         #TF listener, can look for transforms
@@ -48,7 +48,8 @@ class NavClass():
    
     def runRobot(self):
         rospy.loginfo("Running the robot")
-        
+        resolution = 0.01
+        gain = 0.1
         rate = rospy.Rate(10.0)
         
         #Get origin
@@ -61,7 +62,9 @@ class NavClass():
         rospy.loginfo("Distance x: %f" , distancex)
         rospy.loginfo("Distance y: %f" , distancey)
         
-        while (distancex > 0.1 or distancex < -0.1) or (distancey > 0.1 or distancey < -0.1):
+        while (distancex > resolution or distancex < -resolution) or (distancey > resolution or distancey < -resolution):
+            if(self.robRun == False):
+                return
             #Get origin
             #TF Listener
             self.getTF()                
@@ -82,8 +85,8 @@ class NavClass():
             self.speed_msg.angular.x = 0.0
             self.speed_msg.angular.y = 0.0
             self.speed_msg.angular.z = 0.0
-            self.speed_msg.linear.x = distancex*0.1
-            self.speed_msg.linear.y = distancey*0.1
+            self.speed_msg.linear.x = distancex * gain
+            self.speed_msg.linear.y = distancey * gain
             self.speed_msg.linear.z = 0.0
             self.speed_pub.publish(self.speed_msg)
             rate.sleep()
@@ -92,27 +95,31 @@ class NavClass():
         rospy.loginfo("Distance y: %f" , distancey)    
         self.stopRobot()
         
-   
     def stopRobot(self):
+        stop_msg = std_msgs.msg.String
+        stop_pub = rospy.Publisher('cmd_vel_current', String, queue_size=1)
         rospy.loginfo("Stopping the robot")
         self.speed_msg.linear.x = 0.0
         self.speed_msg.linear.y = 0.0
         self.speed_pub.publish(self.speed_msg)
-
-			       
+        if self.robRun == True:
+            stop_msg.data = "e_done"
+        elif self.robRun == False:
+            stop_msg.data = "e_failed"
+        stop_pub.publish(stop_msg)
+       
     def setPose(self,msg):
         self.pose_msg = msg
         rospy.loginfo("Subscribing to pose")
 
-        
-        
-
     def checkEventMsg(self,msg):
         # If the message is a e_start or e_stop, then call the function to move the robot
         if msg.data == 'e_start':
+            self.robRun = True            
             self.runRobot()
-            
+                
         elif msg.data == 'e_stop':
+            self.robRun = False
             self.stopRobot()
 
 if __name__ == '__main__':
